@@ -97,6 +97,10 @@ class MapView: UIView {
         mapView.showsUserLocation = true
         mapView.userTrackingMode = .followWithHeading
         mapView.mapType = .hybrid
+        
+        if #available(iOS 13.0, *) {
+          mapView.cameraZoomRange = MKMapView.CameraZoomRange(maxCenterCoordinateDistance: 50)
+        }
     }
     
     private func setupStepCountView() {

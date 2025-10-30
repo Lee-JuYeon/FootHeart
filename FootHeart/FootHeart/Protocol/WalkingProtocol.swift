@@ -5,24 +5,25 @@
 //  Created by Jupond on 5/21/25.
 //
 import Foundation
-
-
-
-
-
+import Combine
 
 protocol WalkingProtocol {
-    // 실시간 현재 걸음 수 측정
-    func loadCurrentWalkingCount(completion: @escaping (Result<CurrentWalkingModel, Error>) -> Void)
-    // 실시간 현재 걸음 경로 측정
-    func loadCurrentWalkingPath(completion: @escaping (Result<CurrentWalkingModel, Error>) -> Void)
     
-    // 테마 리스트
-    func loadThemeList(completion: @escaping (Result<[ThemeWalkingModel], Error>) -> Void)
-    // 현재 테마 걷기
-    func loadCurrentTheme(completion: @escaping (Result<ThemeWalkingModel, Error>) -> Void)
+    /*
+     - 하루 총 걸음수 start
+     - 하루 총 걸음수 stop
+     - 하루 총 걸음수 get step count
+     
+     - 사용자 측정 걸음수 start
+     - 사용자 측정 걸음수 stop
+     - 사용자 측정 걸음수 get stop count
+     */
     
-    // 오디오 걷기 리스트
-    func loadAudioWalkingList(completion: @escaping (Result<[AudioWalkingModel], Error>) -> Void)
+    func startDailyWalking() -> AnyPublisher<MapWalkingModel, Never>
+    func stopDailyWalking()
+       
+    
+   
+    
 
 }

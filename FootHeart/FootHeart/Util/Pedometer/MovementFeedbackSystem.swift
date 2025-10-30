@@ -8,6 +8,15 @@
 import CoreMotion
 import UIKit
 
+/*
+ - 문제점
+ OptimizedKalmanFilter, RealtimeStepCounter등은 모두 가속도계 기반임.
+ 따라서 손을 고정하고 걷는 상황에서는 정확도가 굉장히 떨어짐.
+ 
+ - 해결방안
+ GPS 기반 걸음 수 추정을 보완하여 측정한다.
+
+ */
 // 실시간 움직임 감지 및 피드백 시스템
 class MovementFeedbackSystem {
     private let motionManager = CMMotionManager()

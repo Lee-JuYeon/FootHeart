@@ -12,17 +12,20 @@ class MainTabBarController : UITabBarController {
     private let walkingVM: WalkingVM
     private let walkingRepository: WalkingRepository
     private let themeWalkingRepository: ThemeWalkingRepository
+    private let mapWalkingRepositorty : MapWalkingRepository
     
     // MARK: - Initialization
     init() {
         // 1. 먼저 의존성들을 초기화
         self.walkingRepository = WalkingRepository()
         self.themeWalkingRepository = ThemeWalkingRepository()
+        self.mapWalkingRepositorty = MapWalkingRepository()
         
         // 2. WalkingVM 초기화 (ObservableObject 사용)
         self.walkingVM = WalkingVM(
             repository: walkingRepository,
-            themeWalkingRepository: themeWalkingRepository
+            themeWalkingRepository: themeWalkingRepository,
+            mapWalkingRepository: mapWalkingRepositorty
         )
         
         // 3. super.init 호출
@@ -56,8 +59,14 @@ class MainTabBarController : UITabBarController {
          - 영약측정
          - 테마별 걷기 ( 오디오 게임 걷기, 러너스 하이, 유저참여)
          - 오디오 가이드 + 러너스 하이 + 걷는 중 내 몸 발랜스 ( 옵션으로 설정)
+         
+         
+         1. walking view
+         2. nutrition view
+         3. setting view ( my page view )
+         
          */
-        let walkingVC = WalkingViewController()
+        let walkingVC = WalkingViewController(walkingVM: walkingVM)
         let walkingNav = UINavigationController(rootViewController: walkingVC)
         walkingNav.tabBarItem = UITabBarItem(
             title : "걷기",
@@ -66,27 +75,38 @@ class MainTabBarController : UITabBarController {
         )
         walkingNav.tabBarItem.tag = 0
         
-        let themeWalkingVC = ThemeWalkingViewController(walkingVM: walkingVM)
-        let themeWalkingNav = UINavigationController(rootViewController: themeWalkingVC)
-        themeWalkingNav.tabBarItem = UITabBarItem(
-            title : "테마별 걷기",
-            image: UIImage(systemName: "figure.walk"),
-            selectedImage: UIImage(systemName: "figure.walk.circle.fill")
-        )
-        themeWalkingNav.tabBarItem.tag = 1
-        
-        let nutritionVC = NutritionViewController()
-        let nutritionNav = UINavigationController(rootViewController: nutritionVC)
-        nutritionNav.tabBarItem = UITabBarItem(
-            title : "영양 섭취",
-            image: UIImage(systemName: "figure.walk"),
-            selectedImage: UIImage(systemName: "figure.walk.circle.fill")
-        )
-        nutritionNav.tabBarItem.tag = 2
+//        let nutritionVC = NutritionViewController()
+//        let nutritionNav = UINavigationController(rootViewController: nutritionVC)
+//        nutritionNav.tabBarItem = UITabBarItem(
+//            title : "영양",
+//            image: UIImage(systemName: "figure.walk"),
+//            selectedImage: UIImage(systemName: "figure.walk.circle.fill")
+//        )
+//        nutritionNav.tabBarItem.tag = 1
 
+        let settingVC = SettingViewController()
+        let settingNav = UINavigationController(rootViewController: settingVC)
+        settingNav.tabBarItem = UITabBarItem(
+            title : "설정",
+            image: UIImage(systemName: "figure.walk"),
+            selectedImage: UIImage(systemName: "figure.walk.circle.fill")
+        )
+        settingNav.tabBarItem.tag = 1
+        
+        let testVC = ABTestVC()
+        let testNav = UINavigationController(rootViewController: testVC)
+        testNav.tabBarItem = UITabBarItem(
+            title : "ABTest",
+            image: UIImage(systemName: "figure.walk"),
+            selectedImage: UIImage(systemName: "figure.walk.circle.fill")
+        )
+        testNav.tabBarItem.tag = 2
+        
+        
         // 탭들을 TabBarController에 설정
-        viewControllers = [walkingNav, themeWalkingNav, nutritionNav]
-             
+//        viewControllers = [walkingNav, nutritionNav, settingNav]
+        viewControllers = [walkingNav, settingNav, testNav]
+
         // 기본 선택 탭 설정
         selectedIndex = 0
     }
@@ -134,24 +154,24 @@ extension MainTabBarController: UITabBarControllerDelegate {
         impactGenerator.impactOccurred()
         
         // 선택된 탭에 따른 추가 동작 수행
-        switch tabBarController.selectedIndex {
-        case 0:
-            print("걷기 탭 선택됨")
-        case 1:
-            print("테마별 걷기 탭 선택됨")
-            // 테마 걷기 탭 선택시 데이터 로드 (필요한 경우)
-            loadThemeWalkingDataIfNeeded()
-        case 2:
-            print("영양 섭취 탭 선택됨")
-        default:
-            break
-        }
+//        switch tabBarController.selectedIndex {
+//        case 0:
+//            print("걷기 탭 선택됨")
+//        case 1:
+//            print("테마별 걷기 탭 선택됨")
+//            // 테마 걷기 탭 선택시 데이터 로드 (필요한 경우)
+//            loadThemeWalkingDataIfNeeded()
+//        case 2:
+//            print("영양 섭취 탭 선택됨")
+//        default:
+//            break
+//        }
     }
     
-    private func loadThemeWalkingDataIfNeeded() {
-        // 테마 걷기 리스트가 비어있다면 로드
-        if walkingVM.themeWalkingList.isEmpty {
-            walkingVM.loadThemeWalkingList()
-        }
-    }
+//    private func loadThemeWalkingDataIfNeeded() {
+//        // 테마 걷기 리스트가 비어있다면 로드
+//        if walkingVM.themeWalkingList.isEmpty {
+//            walkingVM.loadThemeWalkingList()
+//        }
+//    }
 }
