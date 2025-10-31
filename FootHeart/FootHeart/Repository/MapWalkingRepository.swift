@@ -73,6 +73,9 @@ class MapWalkingRepository {
             
             self.mapWalkingData = mapModel
             self.mapSubject.send(mapModel)
+            
+            print("📤 Repository 수신: steps=\(walkingModel.steps), distance=\(walkingModel.distance)")
+            print("📤 Repository 전송: steps=\(mapModel.steps), duration=\(mapModel.duration)")
         }
     }
     

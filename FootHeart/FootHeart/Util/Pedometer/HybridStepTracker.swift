@@ -497,7 +497,8 @@ class HybridStepTracker: NSObject {
             
             onWalkingUpdate?(walkingModel)  // ✅ 콜백 호출
             walkingSubject.send(walkingModel)  // ✅ Subject 전송
-       
+            print("🚶🚶🚶  HybridStepTracker: steps=\(totalSteps), distance=\(totalDistance)m, elapsed=\(elapsedTime)s")
+
         }
     }
     
