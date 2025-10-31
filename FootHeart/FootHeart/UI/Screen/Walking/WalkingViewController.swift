@@ -58,9 +58,9 @@ class WalkingViewController: UIViewController {
         // TabLayout 설정
         layout.setParentVC(self)
         layout.setTabList([
-            TabModel(title: "지도 걷기"),
-            TabModel(title: "테마 걷기"),
-            TabModel(title: "오디오 걷기")
+            TabModel(title: "프리워킹"),
+            TabModel(title: "테마투어"),
+            TabModel(title: "오디오런")
         ])
         layout.setControllers([mapWalkVC, themeWalkVC, audioWalkVC])
         
@@ -122,6 +122,7 @@ class WalkingViewController: UIViewController {
                 self.updateUI(with: mapWalkingModel)
             }
             .store(in: &cancellables)
+        walkingVM.setBMIModel(juyeonBMIModel)
     }
     
     private func updateUI(with model: MapWalkingModel) {

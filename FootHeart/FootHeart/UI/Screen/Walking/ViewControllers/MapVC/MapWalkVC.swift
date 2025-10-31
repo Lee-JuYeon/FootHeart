@@ -11,8 +11,8 @@ import Combine
 
 class MapWalkVC : UIViewController {
     
-    private let mapView: WalkMapView = {
-        let view = WalkMapView()
+    private let mapView: CustomMapView = {
+        let view = CustomMapView()
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
@@ -52,6 +52,7 @@ class MapWalkVC : UIViewController {
         button.titleLabel?.font = .systemFont(ofSize: 16, weight: .bold)
         return button
     }()
+    
     
     init(){
         super.init(nibName: nil, bundle: nil)
@@ -178,13 +179,14 @@ class MapWalkVC : UIViewController {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] model in
                 self?.walkingChartView.updateChartUI(model)
+                self?.mapView.updatePath(model.path) // 경로 업데이트
             }
             .store(in: &cancellables)
     }
    
 }
 
-extension MapWalkVC: WalkMapViewDelegate {
+extension MapWalkVC: CustomMapViewDelegate {
     
     // 위치 권한 요청 alert view
     func walkMapViewNeedsLocationPermission() {
@@ -224,13 +226,22 @@ extension MapWalkVC : WalkRecordDelegate {
         switch mode {
         case .START:
             walkVM?.startMapWalking()
+            walkingChartView.startDuration()
+            mapView.startTracking()  // 추적 모드 시작
         case .STOP:
             walkVM?.stopMapWalking()
+            walkingChartView.stopDuration()
+            mapView.stopTracking()  // 추적 모드 중지
+
             walkVM?.resetMapWalking()
+            walkingChartView.resetDuration()
+            mapView.clearPath()  // 경로 초기화
         case .PAUSE:
             walkVM?.pauseMapWalking()
+            walkingChartView.pauseDuration()
         case .RESUME:
             walkVM?.resumeMapWalking()
+            walkingChartView.resumeDuration()  
         }
     }
 }

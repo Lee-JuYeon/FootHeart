@@ -13,7 +13,9 @@ class WalkingVM : ObservableObject {
     
     private let walkingRepository : WalkingRepository
     private let themeWalkingRepository: ThemeWalkingProtocol
+    
     private let mapWalkingRepository : MapWalkingRepository
+
     
     init(
         repository : WalkingRepository,
@@ -49,8 +51,9 @@ class WalkingVM : ObservableObject {
             .store(in: &cancellables)
     }
     
-   
-
+    func setBMIModel(_ model: BMIModel) {
+        mapWalkingRepository.setBMIModel(model)
+    }
     
     // ✅ 맵 워킹 (사용자 운동 기록)
     private var mapWalkingSubscription: AnyCancellable?
@@ -90,9 +93,7 @@ class WalkingVM : ObservableObject {
     func stopMapWalking() {
         let finalModel = mapWalkingRepository.stop()
         mapWalkingModel = finalModel
-        
         mapWalkingSubscription?.cancel()  // ✅ 구독 취소
-
         saveMapWalkingData(finalModel)
     }
         

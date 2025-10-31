@@ -121,6 +121,6 @@ class ABTestRepository : ABTestProtocol {
     
     // 보폭 설정 (선택)
     func setAverageStride(_ stride: Double) {
-        hybridTracker.setAverageStride(stride)
+//        hybridTracker.setAverageStride(stride)
     }
 }
