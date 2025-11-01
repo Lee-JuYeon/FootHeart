@@ -8,6 +8,12 @@
 import UIKit
 import Combine
 
+/*
+ settingviewcontroller의 ui를 전체적으로 바꿀건데,
+ 1. 약관 리스트 (서비스 이용약관, 개인정보처리방침, 민감(건강)정보처리에 대한 동의, 위치기반 서비스 이용약관)
+ 2. bmi ui list (bmi model을 기반으로 bmi를 입력하는 ui들을 만들꺼야). 구성해봐
+ 3. 기타 (버전 정보, 오픈소스 라이센스)
+ */
 
 class SettingViewController: UITabBarController {
     

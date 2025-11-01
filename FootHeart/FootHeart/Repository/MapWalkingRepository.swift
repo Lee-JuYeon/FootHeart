@@ -24,13 +24,12 @@ class MapWalkingRepository {
     private var isTracking: Bool = false
     private var bmiModel: BMIModel?
     
-    // ✅ 움직임 추적용
+    // 움직임 기반 활동 시간 추적
     private var lastSteps: Int = 0
     private var lastDistance: Double = 0
     private var lastMovementTime: Date?
-    private var inactiveDuration: TimeInterval = 0
-    private var lastInactiveCheckTime: Date?
-    private var movementCheckTimer: Timer?
+    private var activeDuration: TimeInterval = 0  // 실제 활동 시간만 누적
+    private var lastUpdateTime: Date?
     
     init() {
         self.mapWalkingData = MapWalkingModel(
@@ -55,22 +54,43 @@ class MapWalkingRepository {
                 return
             }
             
-            // 일시정지 중이면 칼로리 계산하지 않음
+            // 일시정지 중이면 업데이트 안 함
             if self.pauseStartTime != nil {
-                print("MapWalkingRepository, setupMovementSystem // 일시정지 중 - 칼로리 계산 생략")
+                print("MapWalkingRepository, setupMovementSystem // 일시정지 중")
                 return
             }
             
             let currentSteps = walkingModel.steps - self.startSteps
             let currentDistance = walkingModel.distance - self.startDistance
+            let now = Date()
             
-            // 실제 활동 시간 계산
+            // 움직임 감지 (걸음 수 또는 거리가 증가했는지 확인)
+            let hasMovement = currentSteps > self.lastSteps || currentDistance > self.lastDistance
+            
+            if hasMovement {
+                // 움직임이 있으면 활동 시간 증가
+                if let lastUpdate = self.lastUpdateTime {
+                    let interval = now.timeIntervalSince(lastUpdate)
+                    
+                    // 최대 10초까지만 인정 (GPS 튀는 경우 방지)
+                    if interval <= 10.0 {
+                        self.activeDuration += interval
+                    }
+                }
+                
+                self.lastSteps = currentSteps
+                self.lastDistance = currentDistance
+                self.lastMovementTime = now
+            }
+            
+            self.lastUpdateTime = now
+            
+            // 총 경과 시간 계산
             let totalDuration = Date().timeIntervalSince(startTime) - self.pausedDuration
-            let activeDuration = totalDuration - self.inactiveDuration
             
             // 칼로리 계산 (활동 시간만 사용)
             var kcal = 0.0
-            if let bmiModel = self.bmiModel, currentSteps > 0 {
+            if let bmiModel = self.bmiModel, currentSteps > 0, self.activeDuration > 0 {
                 let tempModel = MapWalkingModel(
                     date: startTime,
                     steps: currentSteps,
@@ -78,15 +98,17 @@ class MapWalkingRepository {
                     kcal: 0,
                     walkMode: self.mapWalkingData.walkMode,
                     distance: currentDistance,
-                    duration: activeDuration,  // 활동 시간만 사용
+                    duration: self.activeDuration,  // 실제 활동 시간만 사용
                     currentSpeed: walkingModel.currentSpeed
                 )
+                
                 kcal = self.calculator.calculateCaloriesWithRealSpeed(
                     mapWalkingModel: tempModel,
                     model: bmiModel
                 )
             }
             
+            // 최종 모델 생성
             let mapModel = MapWalkingModel(
                 date: startTime,
                 steps: currentSteps,
@@ -94,50 +116,15 @@ class MapWalkingRepository {
                 kcal: kcal,
                 walkMode: self.mapWalkingData.walkMode,
                 distance: currentDistance,
-                duration: totalDuration,
+                duration: totalDuration,  // UI에는 총 시간 표시
                 currentSpeed: walkingModel.currentSpeed
             )
             
             self.mapWalkingData = mapModel
             self.mapSubject.send(mapModel)
             
-            print("MapWalkingRepository, setupMovementSystem // steps=\(currentSteps), totalDuration=\(Int(totalDuration))s, activeDuration=\(Int(activeDuration))s, kcal=\(String(format: "%.1f", kcal))")
+            print("MapWalkingRepository, setupMovementSystem // steps=\(currentSteps), totalTime=\(Int(totalDuration))s, activeTime=\(Int(self.activeDuration))s, kcal=\(String(format: "%.1f", kcal)), moved=\(hasMovement)")
         }
-    }
-    // ✅ 움직임 체크 타이머 시작
-    private func startMovementCheckTimer() {
-        stopMovementCheckTimer()
-        
-        lastInactiveCheckTime = Date()
-        
-        movementCheckTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            guard let self = self,
-                  self.isTracking,
-                  self.pauseStartTime == nil else {
-                return
-            }
-            
-            // ✅ 10초 이상 움직임 없으면 inactive 시간 증가
-            if let lastMovement = self.lastMovementTime,
-               let lastCheck = self.lastInactiveCheckTime {
-                let timeSinceLastMovement = Date().timeIntervalSince(lastMovement)
-                
-                if timeSinceLastMovement >= 10.0 {
-                    // 10초 이상 움직임 없음
-                    let timeSinceLastCheck = Date().timeIntervalSince(lastCheck)
-                    self.inactiveDuration += timeSinceLastCheck
-                    print("🛑 비활동 시간 증가: +\(Int(timeSinceLastCheck))s, 총 비활동=\(Int(self.inactiveDuration))s")
-                }
-            }
-            
-            self.lastInactiveCheckTime = Date()
-        }
-    }
-    
-    // ✅ 움직임 체크 타이머 중지
-    private func stopMovementCheckTimer() {
-        movementCheckTimer?.invalidate()
-        movementCheckTimer = nil
     }
     
     func setBMIModel(_ model: BMIModel) {
@@ -156,15 +143,12 @@ class MapWalkingRepository {
         pausedDuration = 0
         pauseStartTime = nil
         
-        // ✅ 움직임 추적 초기화
+        // 움직임 추적 초기화
         lastSteps = 0
         lastDistance = 0
         lastMovementTime = Date()
-        inactiveDuration = 0
-        lastInactiveCheckTime = Date()
-        
-        // ✅ 움직임 체크 타이머 시작
-        startMovementCheckTimer()
+        lastUpdateTime = Date()
+        activeDuration = 0
         
         mapWalkingData = MapWalkingModel(
             date: Date(),
@@ -177,24 +161,24 @@ class MapWalkingRepository {
             currentSpeed: 0
         )
         
-        print("🟢 운동 시작")
+        print("MapWalkingRepository, start // 운동 시작")
         mapSubject.send(mapWalkingData)
         return mapSubject.eraseToAnyPublisher()
     }
     
     func pause() {
         guard isTracking else {
-            print("⚠️ 운동 중이 아님")
+            print("MapWalkingRepository, pause // 운동 중이 아님")
             return
         }
         
         pauseStartTime = Date()
-        print("⏸️ 운동 일시정지")
+        print("MapWalkingRepository, pause // 운동 일시정지")
     }
     
     func resume() {
         guard isTracking else {
-            print("⚠️ 운동 중이 아님")
+            print("MapWalkingRepository, resume // 운동 중이 아님")
             return
         }
         
@@ -202,18 +186,16 @@ class MapWalkingRepository {
             pausedDuration += Date().timeIntervalSince(pauseStart)
         }
         pauseStartTime = nil
-        lastInactiveCheckTime = Date()  // ✅ 재개 시 체크 시간 리셋
-        print("▶️ 운동 재개")
+        lastMovementTime = Date()
+        lastUpdateTime = Date()  // 재개 시 업데이트 시간 리셋
+        print("MapWalkingRepository, resume // 운동 재개")
     }
     
     func stop() -> MapWalkingModel {
         guard isTracking else {
-            print("⚠️ 운동 중이 아님")
+            print("MapWalkingRepository, stop // 운동 중이 아님")
             return mapWalkingData
         }
-        
-        // ✅ 타이머 중지
-        stopMovementCheckTimer()
         
         if let pauseStart = pauseStartTime {
             pausedDuration += Date().timeIntervalSince(pauseStart)
@@ -221,11 +203,10 @@ class MapWalkingRepository {
         
         if let startTime = startTime {
             let totalDuration = Date().timeIntervalSince(startTime) - pausedDuration
-            let activeDuration = totalDuration - inactiveDuration
             
-            // ✅ 최종 칼로리 재계산 (활동 시간만 사용)
+            // 최종 칼로리 재계산 (활동 시간 사용)
             var kcal = 0.0
-            if let bmiModel = self.bmiModel, mapWalkingData.steps > 0 {
+            if let bmiModel = self.bmiModel, mapWalkingData.steps > 0, activeDuration > 0 {
                 let tempModel = MapWalkingModel(
                     date: startTime,
                     steps: mapWalkingData.steps,
@@ -233,7 +214,7 @@ class MapWalkingRepository {
                     kcal: 0,
                     walkMode: mapWalkingData.walkMode,
                     distance: mapWalkingData.distance,
-                    duration: activeDuration,
+                    duration: activeDuration,  // 활동 시간 사용
                     currentSpeed: 0
                 )
                 kcal = calculator.calculateCaloriesWithRealSpeed(
@@ -255,7 +236,7 @@ class MapWalkingRepository {
             
             mapWalkingData = finalModel
             
-            print("🔴 운동 종료 - 총 시간: \(Int(totalDuration))s, 활동 시간: \(Int(activeDuration))s, 비활동: \(Int(inactiveDuration))s")
+            print("MapWalkingRepository, stop // 운동 종료 - 총시간: \(Int(totalDuration))s, 활동시간: \(Int(activeDuration))s, kcal: \(String(format: "%.1f", kcal))")
         }
         
         movementSystem.stopTracking()
@@ -265,9 +246,6 @@ class MapWalkingRepository {
     }
     
     func reset() {
-        // ✅ 타이머 중지
-        stopMovementCheckTimer()
-        
         isTracking = false
         startTime = nil
         startSteps = 0
@@ -275,12 +253,11 @@ class MapWalkingRepository {
         pausedDuration = 0
         pauseStartTime = nil
         
-        // ✅ 움직임 추적 리셋
         lastSteps = 0
         lastDistance = 0
         lastMovementTime = nil
-        inactiveDuration = 0
-        lastInactiveCheckTime = nil
+        lastUpdateTime = nil
+        activeDuration = 0
         
         mapWalkingData = MapWalkingModel(
             date: Date(),
@@ -293,14 +270,10 @@ class MapWalkingRepository {
             currentSpeed: 0
         )
         
-        print("🔄 운동 데이터 리셋")
+        print("MapWalkingRepository, reset // 운동 데이터 리셋")
     }
     
     func getCurrentData() -> MapWalkingModel {
         return mapWalkingData
-    }
-    
-    deinit {
-        stopMovementCheckTimer()
     }
 }
